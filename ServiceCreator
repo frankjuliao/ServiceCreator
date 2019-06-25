@@ -1,0 +1,59 @@
+#!/bin/bash
+
+
+#########################################################
+#	NAME: ServiceCreator				#
+#	OBJECTIVE: Create Service from Shell Script	#
+#	DATE: 25/06/2019				#
+#	VERSION: 1.0					#
+#	AUTHOR: FRANKLINALDO SILVA			#
+#	CONTACT: FRANK.JULIAO@HOTMAIL.COM		#
+#########################################################
+
+SERVICE=$1
+echo $SERVICE | grep -i "/"
+if [ $? = 0 ]; then
+NAME_SERVICE=$(echo $SERVICE | rev | cut -d'/' -f1 | rev)
+DIR=$(echo "$(echo $SERVICE | rev | cut -d'/' -f2- | rev)/")
+else
+NAME_SERVICE=$SERVICE
+DIR=$(pwd)
+fi
+Create_service() {
+test -e /etc/systemd/system/$NAME_SERVICE.service
+if [ $? = 1 ]; then
+echo "
+[Unit]
+Description=$NAME_SERVICE
+After=network-online.target
+[Service]
+User=$(whoami)
+WorkingDirectory=$DIR
+ExecStart=/bin/bash $NAME_SERVICE
+ExecReload=/bin/kill -HUP \$MAINPID
+ExecStop=/bin/kill -KILL \$MAINPID
+KillMode=process
+Restart=on-failure
+RestartPreventExitStatus=255
+Type=simple
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/$NAME_SERVICE.service
+printf 'Service has been successfully created !!\n' $NAME_SERVICE
+echo -n "Enabling..."
+sleep 1
+systemctl enable $NAME_SERVICE.service &> /dev/null
+systemctl daemon-reload
+echo -n "Starting..."
+sleep 1
+systemctl start $NAME_SERVICE.service
+systemctl status $NAME_SERVICE.service
+echo -e "\nUse: sudo systemctl {start|stop|restart|reload|status} $service"
+exit 0
+else
+	echo "ERROR: Service already exist"
+fi
+
+}
+
+
+Create_service
